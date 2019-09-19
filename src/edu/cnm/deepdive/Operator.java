@@ -1,6 +1,9 @@
 package edu.cnm.deepdive;
 
-import java.util.Arrays;
+
+import static java.lang.Math.sqrt;
+
+import java.util.Deque;
 
 /**
  * Enumerated values representing operators in a postfix (RPN) calculator. Each operator has a token
@@ -27,7 +30,12 @@ public enum Operator {
   /**
    * Pops 1 value from the stack, pushes the square root of the two back onto stack.
    */
-  SQUARE_ROOT("sqrt"),
+  sqrt("sqrt") {
+    @Override
+    protected boolean needsEscape() {
+      return false;
+    }
+  },
   /**
    * Pops 2 values from the stack, pushes the value of 1st raised to the 2nd back onto stack.
    */
@@ -50,8 +58,57 @@ public enum Operator {
     return token;
   }
 
-  public static String tokenPattern() {
-    return "(?:^|\\s)(\\+|\\-|\\*|\\/|\\^|\\%|SQUARE_ROOT)(?:\\s|$)";
+  protected boolean needsEscape() {
+    return true;
   }
-  //TODO Add operate method with switch (later version will use @override).
+
+  public static String tokenPattern() {
+    String pattern = "";
+    for (Operator op : values()) {
+      if (op.needsEscape()) {
+        pattern += "\\";
+
+      }
+      pattern += op.token + "|";
+    }
+    return String.format("(?<=^|\\s)%s(?=\\s|$)", pattern.substring(0, pattern.length() - 1));
+  }
+
+  public static void operate(String token, Deque<Double> operands) {
+    Operator op = null;
+    for (Operator compare : values()) {
+      if (compare.token.equals(token)) {
+        op = compare;
+        break;
+      }
+    }
+    double operand = operands.pop();
+    double result;
+    switch (op) {
+      case ADD:
+        result = operand + operands.pop();
+        break;
+      case SUBTRACT:
+        result = operands.pop() - operand;
+        break;
+      case MULTIPLY:
+        result = operand * operands.pop();
+        break;
+      case DIVIDE:
+        result = operands.pop() / operand;
+        break;
+      case POWER:
+        result = Math.pow(operands.pop(), operand);
+        break;
+      case MODULO:
+        result = operands.pop() % operand;
+        break;
+      case sqrt:
+        result = Math.sqrt(operand);
+        break;
+      default:
+        result = 0;
+    }
+    operands.push(result);
+  }
 }
